@@ -3,13 +3,12 @@
 #include <arm_neon.h>
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 
 namespace {
 
 struct Masks64 {
   uint64_t comma;
-  uint64_t nl;
+uint64_t nl;
   uint64_t quote;
 };
 
@@ -107,22 +106,23 @@ namespace lanerunner {
 Runner::Runner () {};
 
 void Runner::parse_buffer(const uint8_t* data, size_t len) {
+    size_t row_start = 0; 
+
     for (size_t i = 0; i < len; i += 64) {
       Masks64 masks = scan64_csv_structural(data + i);
       
       uint64_t inside_quotes = compute_quote_mask(masks.quote);
 
-      uint64_t clean_commas = masks.comma & ~inside_quotes;
       uint64_t clean_newlines = masks.nl & ~inside_quotes;
+      uint64_t nl_bits = clean_newlines;
 
-      uint64_t structural_bits = clean_commas | clean_newlines;
-
-      while (structural_bits != 0) {
-        int pos = __builtin_ctzll(structural_bits);
+      while (nl_bits != 0) {
+        int pos = __builtin_ctzll(nl_bits);
+        size_t abs = i + static_cast<size_t>(pos);
         
-        std::cout << "At position: " << pos;
-
-        structural_bits &= (structural_bits - 1);
+        row_start = abs + 1;
+        
+        nl_bits &= (nl_bits - 1);
       }
     }
   }
